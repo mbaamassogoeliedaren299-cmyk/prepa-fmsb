@@ -108,7 +108,7 @@ export default function Accueil() {
 
         {/* Communauté WhatsApp */}
         
-          href="#"
+         <a href="#"
           className="mt-6 border-t border-dashed border-line pt-4 flex items-center justify-center gap-2 text-sm font-medium text-success"
         >
           Rejoindre la communauté WhatsApp
