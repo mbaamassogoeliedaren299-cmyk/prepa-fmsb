@@ -58,8 +58,10 @@ function calculerStreak(dates) {
 export default function TableauDeBord() {
   const [chargement, setChargement] = useState(true)
   const [nom, setNom] = useState('')
+  const [monId, setMonId] = useState(null)
   const [stats, setStats] = useState({ complet: 0, scoreMoyen: 0 })
   const [streak, setStreak] = useState(0)
+  const [classement, setClassement] = useState([])
   const [progressionMatieres, setProgressionMatieres] = useState(
     MATIERES_REF.map((m) => ({ nom: m.nom, pourcentage: 0 }))
   )
@@ -72,6 +74,11 @@ export default function TableauDeBord() {
         setChargement(false)
         return
       }
+      setMonId(user.id)
+
+      // Classement réel (fonction sécurisée côté base de données)
+      const { data: classementData } = await supabase.rpc('get_classement')
+      setClassement(classementData || [])
 
       // Nom réel du profil
       const { data: profil } = await supabase
@@ -185,9 +192,39 @@ export default function TableauDeBord() {
           <Sparkline valeurs={progressionSemaines} />
         </div>
 
-        <p className="text-xs text-text-muted text-center mb-2">
-          Le classement entre utilisateurs arrive dans une prochaine étape.
-        </p>
+        {/* Classement */}
+        <h2 className="font-display font-extrabold text-sm text-ink mb-2">
+          Classement — cette semaine
+        </h2>
+        {classement.length === 0 ? (
+          <p className="text-xs text-text-muted text-center mb-6">
+            Personne n'a encore de résultat cette semaine. Sois le premier !
+          </p>
+        ) : (
+          <div className="bg-white border border-line rounded-xl px-2 py-1 mb-6">
+            {classement.map((u, i) => {
+              const moi = u.utilisateur_id === monId
+              return (
+                <div
+                  key={u.utilisateur_id}
+                  className={`flex items-center gap-3 px-2 py-2.5 rounded-lg text-sm ${
+                    moi ? 'bg-ink-light' : ''
+                  }`}
+                >
+                  <span className={`w-5 font-medium ${moi ? 'text-ink' : 'text-text-muted'}`}>
+                    {i + 1}
+                  </span>
+                  <span className={`flex-1 ${moi ? 'text-ink font-medium' : 'text-text'}`}>
+                    {u.nom} {moi ? '(toi)' : ''}
+                  </span>
+                  <span className={moi ? 'text-ink font-medium' : 'text-text-muted'}>
+                    {u.score_moyen}%
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       <BottomNav />
