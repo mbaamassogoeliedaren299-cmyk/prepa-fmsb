@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Clock, Check, X } from 'lucide-react'
+import { supabase } from '../lib/supabaseClient'
+import { EXAMEN_ANCIEN_SUJET_BIOLOGIE } from '../lib/reference'
 
 // Données d'exemple — remplacées plus tard par la table Examens (type = "ancien_sujet")
 // et les Questions qui lui sont rattachées. Durée confirmée : 3h pour toutes les matières.
@@ -83,7 +85,33 @@ export default function AncienSujet() {
       setIndex(index + 1)
     } else {
       setTermine(true)
+      enregistrerResultat(nouvellesReponses)
     }
+  }
+
+  async function enregistrerResultat(reponsesFinales) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return // pas connecté : le résultat n'est simplement pas sauvegardé
+
+    const score = reponsesFinales.filter((r, i) => r === SUJET.questions[i].reponse).length
+    const tauxMaitrise = Math.round((score / totalQuestions) * 100)
+
+    await supabase.from('resultats').insert({
+      utilisateur_id: user.id,
+      examen_id: EXAMEN_ANCIEN_SUJET_BIOLOGIE.id,
+      score,
+      detail_reponses: reponsesFinales,
+    })
+
+    await supabase.from('progression').upsert(
+      {
+        utilisateur_id: user.id,
+        matiere_id: EXAMEN_ANCIEN_SUJET_BIOLOGIE.matiereId,
+        taux_maitrise: tauxMaitrise,
+        derniere_activite: new Date().toISOString(),
+      },
+      { onConflict: 'utilisateur_id,matiere_id' }
+    )
   }
 
   if (termine) {
