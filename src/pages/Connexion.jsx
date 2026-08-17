@@ -11,6 +11,7 @@ export default function Connexion() {
 
   const [email, setEmail] = useState('')
   const [motDePasse, setMotDePasse] = useState('')
+  const [nom, setNom] = useState('')
   const [serieBac, setSerieBac] = useState('')
   const [filiereVisee, setFiliereVisee] = useState('')
 
@@ -41,7 +42,7 @@ export default function Connexion() {
         email,
         password: motDePasse,
         options: {
-          data: { serie_bac: serieBac, filiere_visee: filiereVisee },
+          data: { nom, serie_bac: serieBac, filiere_visee: filiereVisee },
         },
       })
       setChargement(false)
@@ -131,6 +132,18 @@ export default function Connexion() {
 
           {mode === 'inscription' && (
             <>
+              <label className="flex flex-col gap-1">
+                <span className="text-xs font-medium text-text-muted">Nom complet</span>
+                <input
+                  type="text"
+                  required
+                  value={nom}
+                  onChange={(e) => setNom(e.target.value)}
+                  placeholder="Ex. Aïcha Ndiaye"
+                  className="border border-line rounded-lg px-3 py-2.5 text-sm bg-white outline-none focus:border-ink"
+                />
+              </label>
+
               <label className="flex flex-col gap-1">
                 <span className="text-xs font-medium text-text-muted">Série du bac</span>
                 <select
