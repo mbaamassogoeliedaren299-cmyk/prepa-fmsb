@@ -89,4 +89,108 @@ export default function TableauDeBord() {
 
       setProgressionMatieres(
         MATIERES_REF.map((m) => {
-          const p = progressions?.find((p) =>
+          const p = progressions?.find((p) => p.matiere_id === m.id)
+          return { nom: m.nom, pourcentage: p?.taux_maitrise ?? 0 }
+        })
+      )
+
+      // Résultats réels (anciens sujets et, plus tard, examens blancs)
+      const { data: resultats } = await supabase
+        .from('resultats')
+        .select('score, date, examens(nb_questions)')
+        .eq('utilisateur_id', user.id)
+        .order('date', { ascending: true })
+
+      if (resultats && resultats.length > 0) {
+        const pourcentages = resultats.map(
+          (r) => (r.score / (r.examens?.nb_questions || 1)) * 100
+        )
+        const moyenne = pourcentages.reduce((a, b) => a + b, 0) / pourcentages.length
+        setStats({ complet: resultats.length, scoreMoyen: Math.round(moyenne) })
+        setStreak(calculerStreak(resultats.map((r) => r.date)))
+
+        // 4 dernières semaines : moyenne des scores par semaine glissante
+        const semaines = [0, 0, 0, 0].map((_, i) => {
+          const debut = new Date()
+          debut.setDate(debut.getDate() - (4 - i) * 7)
+          const fin = new Date()
+          fin.setDate(fin.getDate() - (3 - i) * 7)
+          const dansLaSemaine = resultats.filter((r) => {
+            const d = new Date(r.date)
+            return d >= debut && d < fin
+          })
+          if (dansLaSemaine.length === 0) return 0
+          const m =
+            dansLaSemaine.reduce(
+              (acc, r) => acc + (r.score / (r.examens?.nb_questions || 1)) * 100,
+              0
+            ) / dansLaSemaine.length
+          return Math.round(m)
+        })
+        setProgressionSemaines(semaines)
+      }
+
+      setChargement(false)
+    }
+    charger()
+  }, [])
+
+  return (
+    <div className="min-h-screen bg-paper pb-24">
+      <div className="mx-auto max-w-md px-5 pt-6">
+        {/* En-tête */}
+        <div className="flex items-center justify-between mb-4">
+          <p className="font-display font-extrabold text-ink text-lg">
+            {chargement ? 'Salut 👋' : `Salut ${nom.split(' ')[0]} 👋`}
+          </p>
+          <div className="w-11 h-11 rounded-full bg-stamp-light flex flex-col items-center justify-center text-stamp">
+            <span className="font-display font-extrabold text-sm leading-none">{streak}</span>
+            <span className="text-[8px] leading-none mt-0.5">jours</span>
+          </div>
+        </div>
+
+        <div className="bg-stamp-light text-stamp text-sm font-medium rounded-xl px-4 py-3 mb-5">
+          {streak > 0
+            ? `Série en cours : ${streak} jour${streak > 1 ? 's' : ''} consécutif${streak > 1 ? 's' : ''} 🔥`
+            : 'Commence ta première série aujourd\'hui 💪'}
+        </div>
+
+        {/* Statistiques */}
+        <div className="grid grid-cols-2 gap-3 mb-6">
+          <div className="bg-white border border-line rounded-xl px-4 py-3">
+            <p className="font-display font-extrabold text-ink text-xl">{stats.complet}</p>
+            <p className="text-xs text-text-muted">Sessions complétées</p>
+          </div>
+          <div className="bg-white border border-line rounded-xl px-4 py-3">
+            <p className="font-display font-extrabold text-ink text-xl">{stats.scoreMoyen}%</p>
+            <p className="text-xs text-text-muted">Score moyen</p>
+          </div>
+        </div>
+
+        {/* Progression par matière */}
+        <h2 className="font-display font-extrabold text-sm text-ink mb-3">
+          Progression par matière
+        </h2>
+        <div className="flex flex-col gap-3 mb-6">
+          {progressionMatieres.map((m) => (
+            <BarreProgression key={m.nom} nom={m.nom} pourcentage={m.pourcentage} />
+          ))}
+        </div>
+
+        {/* Graphique de progression */}
+        <h2 className="font-display font-extrabold text-sm text-ink mb-2">
+          Progression sur les 4 dernières semaines
+        </h2>
+        <div className="bg-white border border-line rounded-xl mb-6">
+          <Sparkline valeurs={progressionSemaines} />
+        </div>
+
+        <p className="text-xs text-text-muted text-center mb-2">
+          Le classement entre utilisateurs arrive dans une prochaine étape.
+        </p>
+      </div>
+
+      <BottomNav />
+    </div>
+  )
+}
