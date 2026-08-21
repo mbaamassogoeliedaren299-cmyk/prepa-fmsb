@@ -1,63 +1,45 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { ChevronDown, ChevronRight, Search } from 'lucide-react'
 import BottomNav from '../components/BottomNav'
-
-// Données d'exemple — remplacées plus tard par les tables Matières / Chapitres / Questions
-// (voir cahier des charges section 5.2 : Chapitres rattachées à Matières, Questions à Chapitres).
-const MATIERES = [
-  {
-    id: 'biologie',
-    nom: 'Biologie',
-    progression: 70,
-    chapitres: [
-      { id: 'cellule', titre: 'La cellule', nbQuestions: 24 },
-      { id: 'genetique', titre: 'Génétique', nbQuestions: 18 },
-      { id: 'physiologie', titre: 'Physiologie humaine', nbQuestions: 22 },
-    ],
-  },
-  {
-    id: 'chimie',
-    nom: 'Chimie',
-    progression: 40,
-    chapitres: [
-      { id: 'atomistique', titre: 'Atomistique', nbQuestions: 16 },
-      { id: 'reactions', titre: 'Réactions chimiques', nbQuestions: 20 },
-    ],
-  },
-  {
-    id: 'physique',
-    nom: 'Physique',
-    progression: 30,
-    chapitres: [
-      { id: 'mecanique', titre: 'Mécanique', nbQuestions: 19 },
-      { id: 'optique', titre: 'Optique', nbQuestions: 14 },
-    ],
-  },
-  {
-    id: 'mathematiques',
-    nom: 'Mathématiques',
-    progression: 15,
-    chapitres: [
-      { id: 'algebre', titre: 'Algèbre', nbQuestions: 21 },
-      { id: 'analyse', titre: 'Analyse', nbQuestions: 17 },
-    ],
-  },
-  {
-    id: 'culture-generale',
-    nom: 'Culture générale',
-    progression: 50,
-    chapitres: [
-      { id: 'histoire-sante', titre: 'Histoire de la santé au Cameroun', nbQuestions: 12 },
-      { id: 'actualites', titre: 'Actualités scientifiques', nbQuestions: 10 },
-    ],
-  },
-]
+import { supabase } from '../lib/supabaseClient'
+import { MATIERES_REF } from '../lib/reference'
 
 export default function Matieres() {
-  const [ouverte, setOuverte] = useState('biologie')
+  const [ouverte, setOuverte] = useState(MATIERES_REF[0].id)
   const [recherche, setRecherche] = useState('')
+  const [chapitresParMatiere, setChapitresParMatiere] = useState({})
+  const [progressionParMatiere, setProgressionParMatiere] = useState({})
 
-  const matieresFiltrees = MATIERES.filter((m) =>
+  useEffect(() => {
+    async function charger() {
+      const { data: chapitres } = await supabase
+        .from('chapitres')
+        .select('id, titre, matiere_id, ordre, questions(id)')
+        .order('ordre', { ascending: true })
+
+      const groupes = {}
+      for (const c of chapitres || []) {
+        if (!groupes[c.matiere_id]) groupes[c.matiere_id] = []
+        groupes[c.matiere_id].push({ ...c, nbQuestions: c.questions?.length || 0 })
+      }
+      setChapitresParMatiere(groupes)
+
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data: progressions } = await supabase
+          .from('progression')
+          .select('matiere_id, taux_maitrise')
+          .eq('utilisateur_id', user.id)
+        const p = {}
+        for (const pr of progressions || []) p[pr.matiere_id] = pr.taux_maitrise
+        setProgressionParMatiere(p)
+      }
+    }
+    charger()
+  }, [])
+
+  const matieresFiltrees = MATIERES_REF.filter((m) =>
     m.nom.toLowerCase().includes(recherche.toLowerCase())
   )
 
@@ -80,6 +62,9 @@ export default function Matieres() {
         <div className="flex flex-col gap-2">
           {matieresFiltrees.map((matiere) => {
             const estOuverte = ouverte === matiere.id
+            const chapitres = chapitresParMatiere[matiere.id] || []
+            const progression = progressionParMatiere[matiere.id] ?? 0
+
             return (
               <div key={matiere.id} className="bg-white border border-line rounded-xl overflow-hidden">
                 <button
@@ -91,23 +76,30 @@ export default function Matieres() {
                     {estOuverte ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                     {matiere.nom}
                   </span>
-                  <span className="text-xs text-text-muted">{matiere.progression}%</span>
+                  <span className="text-xs text-text-muted">{progression}%</span>
                 </button>
 
                 {estOuverte && (
                   <div className="border-t border-line">
-                    {matiere.chapitres.map((chapitre) => (
-                      <div
-                        key={chapitre.id}
-                        className="flex items-center justify-between pl-9 pr-4 py-2.5 border-b border-line last:border-b-0 text-sm"
-                      >
-                        <span className="text-text-muted">{chapitre.titre}</span>
-                        <span className="flex items-center gap-1 text-ink text-xs font-medium">
-                          {chapitre.nbQuestions} Q
-                          <ChevronRight size={13} />
-                        </span>
-                      </div>
-                    ))}
+                    {chapitres.length === 0 ? (
+                      <p className="text-xs text-text-muted px-9 py-3">
+                        Contenu à venir pour cette matière.
+                      </p>
+                    ) : (
+                      chapitres.map((chapitre) => (
+                        <Link
+                          to={`/qcm/${chapitre.id}`}
+                          key={chapitre.id}
+                          className="flex items-center justify-between pl-9 pr-4 py-2.5 border-b border-line last:border-b-0 text-sm"
+                        >
+                          <span className="text-text-muted">{chapitre.titre}</span>
+                          <span className="flex items-center gap-1 text-ink text-xs font-medium">
+                            {chapitre.nbQuestions} Q
+                            <ChevronRight size={13} />
+                          </span>
+                        </Link>
+                      ))
+                    )}
                   </div>
                 )}
               </div>
