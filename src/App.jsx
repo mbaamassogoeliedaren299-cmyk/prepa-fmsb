@@ -2,10 +2,12 @@ import { Suspense, lazy } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import Accueil from './pages/Accueil'
 import Connexion from './pages/Connexion'
+import ReinitialiserMotDePasse from './pages/ReinitialiserMotDePasse'
 import TableauDeBord from './pages/TableauDeBord'
 import Matieres from './pages/Matieres'
 import AncienSujet from './pages/AncienSujet'
-import Placeholder from './components/Placeholder'
+import QcmChapitre from './pages/QcmChapitre'
+import Profil from './pages/Profil'
 
 // Chargé à la demande : la bibliothèque de rendu PDF est lourde (~1 Mo),
 // on évite de l'inclure dans le chargement initial du site (voir cahier des
@@ -18,9 +20,11 @@ function App() {
       <Route path="/" element={<Accueil />} />
       <Route path="/connexion" element={<Connexion />} />
       <Route path="/inscription" element={<Connexion />} />
+      <Route path="/reinitialiser-mot-de-passe" element={<ReinitialiserMotDePasse />} />
       <Route path="/tableau-de-bord" element={<TableauDeBord />} />
       <Route path="/matieres" element={<Matieres />} />
       <Route path="/ancien-sujet" element={<AncienSujet />} />
+      <Route path="/qcm/:chapitreId" element={<QcmChapitre />} />
       <Route
         path="/lecture-pdf"
         element={
@@ -29,7 +33,7 @@ function App() {
           </Suspense>
         }
       />
-      <Route path="/profil" element={<Placeholder titre="Profil" />} />
+      <Route path="/profil" element={<Profil />} />
     </Routes>
   )
 }
