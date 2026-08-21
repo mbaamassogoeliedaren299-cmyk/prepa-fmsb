@@ -184,4 +184,90 @@ export default function Connexion() {
           </label>
 
           <label className="flex flex-col gap-1">
-            <span className="text-xs font-medium text-text-muted">Mot de
+            <span className="text-xs font-medium text-text-muted">Mot de passe</span>
+            <input
+              type="password"
+              required
+              minLength={6}
+              value={motDePasse}
+              onChange={(e) => setMotDePasse(e.target.value)}
+              placeholder="6 caractères minimum"
+              className="border border-line rounded-lg px-3 py-2.5 text-sm bg-white outline-none focus:border-ink"
+            />
+          </label>
+
+          {mode === 'connexion' && (
+            <button
+              type="button"
+              onClick={() => { setMode('oubli'); setErreur(''); setInfo('') }}
+              className="text-xs text-ink text-right underline decoration-dotted self-end"
+            >
+              Mot de passe oublié ?
+            </button>
+          )}
+
+          {mode === 'inscription' && (
+            <>
+              <label className="flex flex-col gap-1">
+                <span className="text-xs font-medium text-text-muted">Nom complet</span>
+                <input
+                  type="text"
+                  required
+                  value={nom}
+                  onChange={(e) => setNom(e.target.value)}
+                  placeholder="Ex. Aïcha Ndiaye"
+                  className="border border-line rounded-lg px-3 py-2.5 text-sm bg-white outline-none focus:border-ink"
+                />
+              </label>
+
+              <label className="flex flex-col gap-1">
+                <span className="text-xs font-medium text-text-muted">Série du bac</span>
+                <select
+                  required
+                  value={serieBac}
+                  onChange={(e) => setSerieBac(e.target.value)}
+                  className="border border-line rounded-lg px-3 py-2.5 text-sm bg-white outline-none focus:border-ink"
+                >
+                  <option value="" disabled>Choisis ta série</option>
+                  {SERIES_BAC.map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="flex flex-col gap-1">
+                <span className="text-xs font-medium text-text-muted">Filière visée</span>
+                <input
+                  type="text"
+                  required
+                  value={filiereVisee}
+                  onChange={(e) => setFiliereVisee(e.target.value)}
+                  placeholder="Ex. Médecine générale"
+                  className="border border-line rounded-lg px-3 py-2.5 text-sm bg-white outline-none focus:border-ink"
+                />
+              </label>
+            </>
+          )}
+
+          {erreur && (
+            <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              {erreur}
+            </p>
+          )}
+
+          <button
+            type="submit"
+            disabled={chargement}
+            className="mt-2 py-3 rounded-full bg-stamp text-white font-display font-extrabold text-sm disabled:opacity-60"
+          >
+            {chargement
+              ? 'Un instant…'
+              : mode === 'connexion'
+                ? 'Se connecter'
+                : 'Créer mon compte'}
+          </button>
+        </form>
+      </div>
+    </div>
+  )
+}
