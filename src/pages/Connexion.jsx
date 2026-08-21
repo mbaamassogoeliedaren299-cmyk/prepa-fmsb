@@ -8,6 +8,7 @@ export default function Connexion() {
   const location = useLocation()
   const navigate = useNavigate()
   const [mode, setMode] = useState(location.pathname === '/inscription' ? 'inscription' : 'connexion')
+  // mode peut aussi valoir 'oubli' pour l'écran de mot de passe oublié
 
   const [email, setEmail] = useState('')
   const [motDePasse, setMotDePasse] = useState('')
@@ -17,6 +18,23 @@ export default function Connexion() {
 
   const [chargement, setChargement] = useState(false)
   const [erreur, setErreur] = useState('')
+  const [info, setInfo] = useState('')
+
+  async function envoyerLienReinitialisation(e) {
+    e.preventDefault()
+    setErreur('')
+    setInfo('')
+    setChargement(true)
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reinitialiser-mot-de-passe`,
+    })
+    setChargement(false)
+    if (error) {
+      setErreur(traduireErreur(error.message))
+      return
+    }
+    setInfo('Si un compte existe avec cet email, un lien de réinitialisation vient de lui être envoyé.')
+  }
 
   async function gererEnvoi(e) {
     e.preventDefault()
@@ -70,6 +88,60 @@ export default function Connexion() {
     return message
   }
 
+  // Écran dédié : mot de passe oublié
+  if (mode === 'oubli') {
+    return (
+      <div className="min-h-screen bg-paper flex items-center justify-center px-5 py-10">
+        <div className="w-full max-w-sm">
+          <p className="font-display font-extrabold text-ink text-xl text-center mb-2">
+            Mot de passe oublié
+          </p>
+          <p className="text-sm text-text-muted text-center mb-6">
+            Indique ton email, on t'enverra un lien pour en choisir un nouveau.
+          </p>
+
+          <form onSubmit={envoyerLienReinitialisation} className="flex flex-col gap-3">
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="toi@exemple.com"
+              className="border border-line rounded-lg px-3 py-2.5 text-sm bg-white outline-none focus:border-ink"
+            />
+
+            {info && (
+              <p className="text-xs text-success bg-success-light border border-success/30 rounded-lg px-3 py-2">
+                {info}
+              </p>
+            )}
+            {erreur && (
+              <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                {erreur}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={chargement}
+              className="mt-2 py-3 rounded-full bg-stamp text-white font-display font-extrabold text-sm disabled:opacity-60"
+            >
+              {chargement ? 'Envoi…' : 'Envoyer le lien'}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => { setMode('connexion'); setErreur(''); setInfo('') }}
+              className="text-xs text-ink text-center underline decoration-dotted mt-1"
+            >
+              Retour à la connexion
+            </button>
+          </form>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-paper flex items-center justify-center px-5 py-10">
       <div className="w-full max-w-sm">
@@ -112,86 +184,4 @@ export default function Connexion() {
           </label>
 
           <label className="flex flex-col gap-1">
-            <span className="text-xs font-medium text-text-muted">Mot de passe</span>
-            <input
-              type="password"
-              required
-              minLength={6}
-              value={motDePasse}
-              onChange={(e) => setMotDePasse(e.target.value)}
-              placeholder="6 caractères minimum"
-              className="border border-line rounded-lg px-3 py-2.5 text-sm bg-white outline-none focus:border-ink"
-            />
-          </label>
-
-          {mode === 'connexion' && (
-            <button type="button" className="text-xs text-ink text-right underline decoration-dotted self-end">
-              Mot de passe oublié ?
-            </button>
-          )}
-
-          {mode === 'inscription' && (
-            <>
-              <label className="flex flex-col gap-1">
-                <span className="text-xs font-medium text-text-muted">Nom complet</span>
-                <input
-                  type="text"
-                  required
-                  value={nom}
-                  onChange={(e) => setNom(e.target.value)}
-                  placeholder="Ex. Aïcha Ndiaye"
-                  className="border border-line rounded-lg px-3 py-2.5 text-sm bg-white outline-none focus:border-ink"
-                />
-              </label>
-
-              <label className="flex flex-col gap-1">
-                <span className="text-xs font-medium text-text-muted">Série du bac</span>
-                <select
-                  required
-                  value={serieBac}
-                  onChange={(e) => setSerieBac(e.target.value)}
-                  className="border border-line rounded-lg px-3 py-2.5 text-sm bg-white outline-none focus:border-ink"
-                >
-                  <option value="" disabled>Choisis ta série</option>
-                  {SERIES_BAC.map((s) => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="flex flex-col gap-1">
-                <span className="text-xs font-medium text-text-muted">Filière visée</span>
-                <input
-                  type="text"
-                  required
-                  value={filiereVisee}
-                  onChange={(e) => setFiliereVisee(e.target.value)}
-                  placeholder="Ex. Médecine générale"
-                  className="border border-line rounded-lg px-3 py-2.5 text-sm bg-white outline-none focus:border-ink"
-                />
-              </label>
-            </>
-          )}
-
-          {erreur && (
-            <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-              {erreur}
-            </p>
-          )}
-
-          <button
-            type="submit"
-            disabled={chargement}
-            className="mt-2 py-3 rounded-full bg-stamp text-white font-display font-extrabold text-sm disabled:opacity-60"
-          >
-            {chargement
-              ? 'Un instant…'
-              : mode === 'connexion'
-                ? 'Se connecter'
-                : 'Créer mon compte'}
-          </button>
-        </form>
-      </div>
-    </div>
-  )
-}
+            <span className="text-xs font-medium text-text-muted">Mot de
